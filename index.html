@@ -2,6 +2,7 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
+  <!-- Optimisation pour mobile -->
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Mandala Interactif - Art & Science</title>
   <style>
@@ -66,41 +67,40 @@
   <!-- Inclusion de p5.js depuis un CDN -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
   <script>
-    // Variables pour les contrôles
-    let rotationSlider, motifsSlider;
-    let rotationValue, motifsValue;
-
+    // Déclaration des variables pour les contrôles
+    let rotationSlider, motifsSlider, rotationValue, motifsValue;
+    
     function setup() {
       createCanvas(windowWidth, windowHeight);
       angleMode(DEGREES);
-      // Récupération des éléments du DOM pour les contrôles
+      // Récupération des éléments du DOM avec p5.js
       rotationSlider = select('#rotation');
       motifsSlider = select('#motifs');
       rotationValue = select('#rotationValue');
       motifsValue = select('#motifsValue');
     }
-
+    
     function windowResized() {
       resizeCanvas(windowWidth, windowHeight);
     }
-
+    
     function draw() {
       background(17);
+      // On place l'origine au centre de la fenêtre
       translate(width / 2, height / 2);
       
-      // Mise à jour des valeurs affichées
-      const rotationInit = Number(rotationSlider.value());
-      const numMotifs = int(motifsSlider.value());
+      // Mise à jour des valeurs depuis les sliders
+      let rotationInit = Number(rotationSlider.value());
+      let numMotifs = int(motifsSlider.value());
       rotationValue.html(rotationInit);
       motifsValue.html(numMotifs);
       
       // Calcul de l'angle entre chaque motif
       let angleStep = 360 / numMotifs;
-      
-      // Rotation globale initiale
+      // Appliquer la rotation globale initiale
       rotate(rotationInit);
       
-      // Pour chaque motif, on dessine un mandala
+      // Pour chaque motif, on dessine le mandala
       for (let i = 0; i < numMotifs; i++) {
         push();
         rotate(i * angleStep);
@@ -108,19 +108,20 @@
         pop();
       }
     }
-
-    // Fonction qui dessine un mandala
+    
+    // Fonction qui dessine un mandala simple
     function drawMandala() {
       stroke('lime');
       noFill();
+      // Le rayon maximal est 30% du plus petit côté de la fenêtre
       let maxRadius = min(width, height) * 0.3;
       
-      // Dessin de cercles concentriques
-      for (let r = 0; r < maxRadius; r += 10) {
-        ellipse(0, 0, r, r);
+      // Dessiner des cercles concentriques
+      for (let r = 10; r < maxRadius; r += 10) {
+        ellipse(0, 0, r * 2, r * 2); // 'ellipse' attend le diamètre, d'où r*2
       }
       
-      // Dessin de lignes radiales pour ajouter du dynamisme
+      // Dessiner des lignes radiales pour dynamiser le dessin
       stroke('orange');
       let numLines = 12;
       for (let i = 0; i < numLines; i++) {
