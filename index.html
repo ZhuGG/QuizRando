@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mandala Interactif - Art & Science</title>
+  <style>
+    /* Styles de base */
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: #111;
+      overflow: hidden;
+      font-family: 'Roboto', sans-serif;
+      color: #eee;
+    }
+    canvas {
+      display: block;
+    }
+    /* Panneau de contrôle en mode glassmorphism */
+    #controls {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      background: rgba(255, 255, 255, 0.1);
+      backdrop-filter: blur(8px);
+      padding: 12px;
+      border-radius: 8px;
+      z-index: 10;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
+    }
+    #controls label {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 14px;
+    }
+    #controls input[type="range"] {
+      width: 200px;
+      margin-top: 4px;
+    }
+    /* Responsive pour mobile */
+    @media (max-width: 600px) {
+      #controls {
+        width: calc(100% - 20px);
+        left: 50%;
+        transform: translateX(-50%);
+        top: auto;
+        bottom: 10px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <!-- Panneau de contrôle interactif -->
+  <div id="controls">
+    <label>
+      Rotation initiale (°) : <span id="rotationValue">0</span>
+      <input type="range" id="rotation" min="0" max="360" value="0">
+    </label>
+    <label>
+      Nombre de motifs : <span id="motifsValue">6</span>
+      <input type="range" id="motifs" min="3" max="12" value="6">
+    </label>
+  </div>
+
+  <!-- Inclusion de p5.js depuis un CDN -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <script>
+    // Variables pour les contrôles
+    let rotationSlider, motifsSlider;
+    let rotationValue, motifsValue;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+      angleMode(DEGREES);
+      // Récupération des éléments du DOM pour les contrôles
+      rotationSlider = select('#rotation');
+      motifsSlider = select('#motifs');
+      rotationValue = select('#rotationValue');
+      motifsValue = select('#motifsValue');
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+    }
+
+    function draw() {
+      background(17);
+      translate(width / 2, height / 2);
+      
+      // Mise à jour des valeurs affichées
+      const rotationInit = Number(rotationSlider.value());
+      const numMotifs = int(motifsSlider.value());
+      rotationValue.html(rotationInit);
+      motifsValue.html(numMotifs);
+      
+      // Calcul de l'angle entre chaque motif
+      let angleStep = 360 / numMotifs;
+      
+      // Rotation globale initiale
+      rotate(rotationInit);
+      
+      // Pour chaque motif, on dessine un mandala
+      for (let i = 0; i < numMotifs; i++) {
+        push();
+        rotate(i * angleStep);
+        drawMandala();
+        pop();
+      }
+    }
+
+    // Fonction qui dessine un mandala
+    function drawMandala() {
+      stroke('lime');
+      noFill();
+      let maxRadius = min(width, height) * 0.3;
+      
+      // Dessin de cercles concentriques
+      for (let r = 0; r < maxRadius; r += 10) {
+        ellipse(0, 0, r, r);
+      }
+      
+      // Dessin de lignes radiales pour ajouter du dynamisme
+      stroke('orange');
+      let numLines = 12;
+      for (let i = 0; i < numLines; i++) {
+        let angle = i * (360 / numLines);
+        let x = maxRadius * cos(angle);
+        let y = maxRadius * sin(angle);
+        line(0, 0, x, y);
+      }
+    }
+  </script>
+</body>
+</html>
