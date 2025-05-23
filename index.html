@@ -2,135 +2,185 @@
 <html lang="fr">
 <head>
   <meta charset="UTF-8">
-  <!-- Optimisation pour mobile -->
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Mandala Interactif - Art & Science</title>
+  <title>Quiz Rando Bauges – QCM Duel</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1">
   <style>
-    /* Styles de base */
-    body {
-      margin: 0;
-      padding: 0;
-      background-color: #111;
-      overflow: hidden;
-      font-family: 'Roboto', sans-serif;
-      color: #eee;
+    :root {
+      --main: #46815f;
+      --accent: #e7c65c;
+      --fond: #f5f7f3;
+      --ok: #52c269;
+      --fail: #d9534f;
+      --shadow: 0 2px 12px #0001;
     }
-    canvas {
-      display: block;
+    body { margin:0; background:var(--fond); font-family:'Segoe UI',sans-serif; color:#222;}
+    header { background:var(--main); color:#fff; padding:1.2em 0; text-align:center; letter-spacing:0.05em;}
+    main { max-width:430px; margin:1.5em auto; padding:1.2em; background:#fff; border-radius:16px; box-shadow:var(--shadow);}
+    .qplayer { text-align:center; font-weight:bold; color:var(--main); margin-bottom:0.5em; font-size:1.15em;}
+    .qtext { font-size:1.22em; font-weight:600; margin-bottom:1.2em; text-align:center; min-height:44px; }
+    .qcm { display:grid; gap:1em; margin-bottom:1.1em; }
+    .btn { display:block; width:100%; border:none; border-radius:8px; font-size:1em; font-weight:600; padding:0.8em; background:var(--accent); color:#222; box-shadow:var(--shadow); cursor:pointer; transition:.2s; }
+    .btn:hover, .btn.selected { background:var(--main); color:#fff; }
+    .btn.good { background:var(--ok)!important; color:#fff;}
+    .btn.bad { background:var(--fail)!important; color:#fff;}
+    .feedback { text-align:center; min-height:36px; font-size:1.07em; font-weight:500; margin-bottom:1.2em; transition:.3s;}
+    .scorebox { display:flex; justify-content:space-around; margin:1.2em 0 0.8em 0;}
+    .score { font-size:1em; padding:0.25em 0.8em; background:#f3f5f2; border-radius:6px;}
+    .hugues {color:#46815f;}
+    .olivier {color:#b8830e;}
+    .pierre {color:#af3245;}
+    .animate-in { animation:fadeIn .7s cubic-bezier(.5,0,.3,1);}
+    .animate-out { animation:fadeOut .45s cubic-bezier(.5,0,.3,1);}
+    @keyframes fadeIn { from{opacity:0;transform:translateY(20px);} to{opacity:1;transform:translateY(0);} }
+    @keyframes fadeOut { from{opacity:1;transform:translateY(0);} to{opacity:0;transform:translateY(-25px);} }
+    @media (max-width:600px) {
+      main {padding:0.7em;}
+      .qtext {font-size:1.08em;}
     }
-    /* Panneau de contrôle en mode glassmorphism */
-    #controls {
-      position: absolute;
-      top: 10px;
-      left: 10px;
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(8px);
-      padding: 12px;
-      border-radius: 8px;
-      z-index: 10;
-      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.4);
-    }
-    #controls label {
-      display: block;
-      margin-bottom: 8px;
-      font-size: 14px;
-    }
-    #controls input[type="range"] {
-      width: 200px;
-      margin-top: 4px;
-    }
-    /* Responsive pour mobile */
-    @media (max-width: 600px) {
-      #controls {
-        width: calc(100% - 20px);
-        left: 50%;
-        transform: translateX(-50%);
-        top: auto;
-        bottom: 10px;
-      }
-    }
+    .tip {background:#e6f7ed; color:#46815f; border-left:4px solid #46815f; margin:0.5em 0 1em 0; padding:0.6em 1em;}
+    .footer {text-align:center; color:#888; font-size:0.94em; margin-top:2em;}
   </style>
 </head>
 <body>
-  <!-- Panneau de contrôle interactif -->
-  <div id="controls">
-    <label>
-      Rotation initiale (°) : <span id="rotationValue">0</span>
-      <input type="range" id="rotation" min="0" max="360" value="0">
-    </label>
-    <label>
-      Nombre de motifs : <span id="motifsValue">6</span>
-      <input type="range" id="motifs" min="3" max="12" value="6">
-    </label>
-  </div>
-
-  <!-- Inclusion de p5.js depuis un CDN -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+  <header>
+    <h1>Quiz Bauges – QCM Duel</h1>
+  </header>
+  <main>
+    <div class="scorebox" id="scorebox">
+      <span class="score hugues" id="p1">Hugues : 0</span>
+      <span class="score olivier" id="p2">Olivier : 0</span>
+      <span class="score pierre" id="p3">Pierre : 0</span>
+    </div>
+    <div class="qplayer" id="qplayer"></div>
+    <div id="qzone"></div>
+    <div class="feedback" id="feedback"></div>
+    <div class="tip" id="tip">
+      <b>Astuce :</b> Chacun répond à son tour. <br>
+      <span style="color:#af3245;">Certaines questions sont aussi crues que la météo en montagne !</span>
+    </div>
+    <div class="footer">Fait pour Hugues, Olivier & Pierre – Bauges 2025</div>
+  </main>
   <script>
-    // Déclaration des variables pour les contrôles
-    let rotationSlider, motifsSlider, rotationValue, motifsValue;
-    
-    function setup() {
-      createCanvas(windowWidth, windowHeight);
-      angleMode(DEGREES);
-      // Récupération des éléments du DOM avec p5.js
-      rotationSlider = select('#rotation');
-      motifsSlider = select('#motifs');
-      rotationValue = select('#rotationValue');
-      motifsValue = select('#motifsValue');
-    }
-    
-    function windowResized() {
-      resizeCanvas(windowWidth, windowHeight);
-    }
-    
-    function draw() {
-      background(17);
-      // On place l'origine au centre de la fenêtre
-      translate(width / 2, height / 2);
-      
-      // Mise à jour des valeurs depuis les sliders
-      let rotationInit = Number(rotationSlider.value());
-      let numMotifs = int(motifsSlider.value());
-      rotationValue.html(rotationInit);
-      motifsValue.html(numMotifs);
-      
-      // Calcul de l'angle entre chaque motif
-      let angleStep = 360 / numMotifs;
-      // Appliquer la rotation globale initiale
-      rotate(rotationInit);
-      
-      // Pour chaque motif, on dessine le mandala
-      for (let i = 0; i < numMotifs; i++) {
-        push();
-        rotate(i * angleStep);
-        drawMandala();
-        pop();
+    const playerNames = ["Hugues", "Olivier", "Pierre"];
+    const colors = ["#46815f", "#b8830e", "#af3245"];
+    const questions = [
+      // Sérieuses (exemples, à étoffer selon besoin)
+      { q: "Quelle est l'altitude du Chalet du Charbon ?", a: 1, c:["1330m", "1660m", "1865m"] },
+      { q: "Quel sommet est le plus haut des Bauges ?", a: 0, c:["Arcalod", "Chaurionde", "Mont Charvin"] },
+      { q: "Combien de couchages au refuge du Charbon (environ) ?", a:2, c:["6", "11", "15-16"] },
+      { q: "Qu'est-ce qu'un névé ?", a: 2, c:["Un abri rustique", "Un insecte rare", "Neige persistante"] },
+      { q: "Animal qui protège les troupeaux d’alpage ?", a:1, c:["Chamois", "Patou", "Cochon sauvage"] },
+      { q: "Quel accessoire est ESSENTIEL pour filtrer l’eau de source ?", a: 0, c:["Filtre ou pastilles", "Écharpe", "Paille aromatisée"] },
+      { q: "À quoi sert la carte IGN plastifiée ?", a:0, c:["S’orienter même mouillé", "Ramasser la merde du pote", "Décorer la tente"] },
+      { q: "Quel est le principal danger météo en montagne ?", a: 2, c:["Froid polaire", "Pluie de myrtilles", "Orage soudain"] },
+      { q: "Où est-il INTERDIT de planter la tente dans la réserve des Bauges ?", a:1, c:["A moins de 50m d’un refuge", "En pleine zone sans abri", "Sur le toit d’une vache"] },
+      { q: "Quel animal peut charger un randonneur ?", a:1, c:["Bouquetin", "Vache en rut", "Grenouille fatiguée"] },
+      { q: "Quelle plante peut provoquer de graves brûlures au contact humide ?", a:2, c:["Edelweiss", "Génépi", "Berce du Caucase"] },
+      { q: "Quelle est la bonne réaction face à un patou ?", a: 2, c:["Lui lancer ton sandwich", "Courir en hurlant", "S'arrêter et parler calmement"] },
+      { q: "Qu’est-ce qu’on évite ABSOLUMENT de faire en cas d’orage ?", a:2, c:["Se coucher sous un rocher", "Redescendre", "Rester sur la crête"] },
+      { q: "Quelle boisson déshydrate le plus en montagne ?", a: 0, c:["Bière", "Eau filtrée", "Tisane"] },
+      { q: "Que faut-il emporter pour bivouaquer (hors tente) ?", a:1, c:["Fourchette à escargot", "Sac de couchage chaud", "Gant en cuir"] },
+      // Crues/vulgaires
+      { q: "Quel est le VRAI risque d’oublier le PQ en bivouac ?", a:1, c:["Tu demandes à un sanglier", "T'essuies avec ta main puis tu serres la main de tes potes", "Tu cries jusqu'à ce que Maman vienne"] },
+      { q: "Ton pote a bouffé du cassoulet lyophilisé... Que se passe-t-il la nuit ?", a:2, c:["Explosion de duvet", "Tente propulsée au col suivant", "Odeur de chacal, tout le monde sort"] },
+      { q: "Quel est le meilleur remède si ton sexe gèle dans la tente ?", a:1, c:["Crier très fort", "Le réchauffer dans la bouche d’un(e) ami(e)", "Lui écrire un poème triste"] },
+      { q: "Un patou te fonce dessus, tu fais quoi ?", a:2, c:["Tu montres ton cul", "Tu miaules", "Tu te pisses dessus et tu pleures en pensant à ta mère"] },
+      { q: "Quelle solution si t'as des morpions après 3 jours sans douche ?", a:0, c:["Brûler ton slip avec le réchaud", "Les partager avec tes amis", "Prier Saint-Bidet"] },
+      { q: "Après 25km à transpirer dans ta culotte, meilleure astuce pour l’odeur ?", a:0, c:["Mettre la culotte sur le nez de ton pote", "L'accrocher sur le bâton du berger", "S'en servir comme sac à vomi"] },
+      { q: "Pourquoi éviter de dormir à poil dans une cabane de montagne ?", a:1, c:["Pour ne pas bander sur un chamois", "Parce que la souris va grignoter tes noisettes", "Parce que tu vas glisser sur la banquette"] },
+      { q: "La première chose à faire après avoir chié derrière un sapin ?", a:2, c:["Se filmer pour TikTok", "Marquer le territoire", "Enterrer comme un humain et prier pour que personne ne marche dedans"] },
+      { q: "Ton pote se réveille, sa bouche sent la charogne. Il a sûrement :", a:2, c:["Léché un patou", "Bouffé la chaussette de droite", "Dormir la bouche ouverte sur ta chaussette sale"] },
+      { q: "Quelle attitude adopter face à un troupeau de vaches en rut ?", a:1, c:["Filer à poil au sommet", "Les applaudir en chantant du Patrick Sébastien", "Tenter de téter la première venue"] },
+      { q: "Comment reconnaître un randonneur vraiment en galère ?", a:0, c:["Il supplie pour une lingette intime", "Il tente de manger des crottes de marmotte", "Il pleure en demandant le WiFi"] },
+      { q: "Pour survivre en cas de pluie continue ?", a:2, c:["Se rouler dans la boue", "Chanter fort pour faire peur à la météo", "Pleurer dans son slip et attendre la fin"] },
+      { q: "Ton pote ronfle à réveiller les marmottes, que fais-tu ?", a:1, c:["Tu lui bouches le nez avec une chaussette sale", "Tu le roules dans la pente jusqu’à la rivière", "Tu filmes et partages sur le groupe WhatsApp pro"] },
+      { q: "La meilleure façon de sécher ses chaussettes trempées ?", a:2, c:["Les brûler et sacrifier la tente", "Les filer à un patou", "Les coller sur la tronche d’un pote pendant son sommeil"] },
+      { q: "En cas d’ampoule au pied…", a:0, c:["Percer et désinfecter", "Laisser mûrir puis gober", "Échanger contre une bière"] }
+    ];
+    // Mélange questions
+    function shuffle(array) {
+      for(let i=array.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [array[i],array[j]] = [array[j],array[i]];
       }
     }
-    
-    // Fonction qui dessine un mandala simple
-    function drawMandala() {
-      stroke('lime');
-      noFill();
-      // Le rayon maximal est 30% du plus petit côté de la fenêtre
-      let maxRadius = min(width, height) * 0.3;
-      
-      // Dessiner des cercles concentriques
-      for (let r = 10; r < maxRadius; r += 10) {
-        ellipse(0, 0, r * 2, r * 2); // 'ellipse' attend le diamètre, d'où r*2
-      }
-      
-      // Dessiner des lignes radiales pour dynamiser le dessin
-      stroke('orange');
-      let numLines = 12;
-      for (let i = 0; i < numLines; i++) {
-        let angle = i * (360 / numLines);
-        let x = maxRadius * cos(angle);
-        let y = maxRadius * sin(angle);
-        line(0, 0, x, y);
-      }
+    shuffle(questions);
+
+    let scores = [0,0,0], current=0, qidx=0, totalQ=questions.length;
+    const qplayer = document.getElementById("qplayer");
+    const qzone = document.getElementById("qzone");
+    const feedback = document.getElementById("feedback");
+    const scoreEls = [
+      document.getElementById("p1"),
+      document.getElementById("p2"),
+      document.getElementById("p3")
+    ];
+    const tip = document.getElementById("tip");
+
+    function showScore(){
+      scoreEls[0].textContent = `Hugues : ${scores[0]}`;
+      scoreEls[1].textContent = `Olivier : ${scores[1]}`;
+      scoreEls[2].textContent = `Pierre : ${scores[2]}`;
     }
+
+    function showQ() {
+      feedback.textContent="";
+      tip.style.display = qidx===0 ? "block":"none";
+      if(qidx>=totalQ){
+        qzone.innerHTML=`<div class="qtext animate-in">Fin du quiz !<br>Score final:<br>
+        <b style="color:${colors[0]}">Hugues: ${scores[0]}</b><br>
+        <b style="color:${colors[1]}">Olivier: ${scores[1]}</b><br>
+        <b style="color:${colors[2]}">Pierre: ${scores[2]}</b></div>
+        <button class="btn nextbtn" onclick="location.reload()">Rejouer</button>`;
+        qplayer.textContent="";
+        return;
+      }
+      qplayer.textContent = `À toi : ${playerNames[current]}`;
+      qplayer.style.color = colors[current];
+      const q = questions[qidx];
+      let html = `<div class="qtext animate-in">${q.q}</div>
+        <div class="qcm">`;
+      q.c.forEach((choix, i)=>{
+        html += `<button class="btn" data-i="${i}">${choix}</button>`;
+      });
+      html += `</div>`;
+      qzone.innerHTML = html;
+      document.querySelectorAll(".btn").forEach(btn=>{
+        btn.onclick = (e) => answerQ(e);
+      });
+    }
+
+    function answerQ(e){
+      let i = Number(e.target.dataset.i);
+      let good = i === questions[qidx].a;
+      document.querySelectorAll(".btn").forEach((btn,idx)=>{
+        btn.disabled = true;
+        btn.classList.remove('selected');
+        if(idx === questions[qidx].a) btn.classList.add("good");
+        else if(idx === i) btn.classList.add("bad");
+      });
+      if(good){
+        feedback.innerHTML = `<span style="color:var(--ok);">Bravo ${playerNames[current]} ! Bonne réponse !</span>`;
+        scores[current]++;
+      }else{
+        feedback.innerHTML = `<span style="color:var(--fail);">Faux ! ${playerNames[current]}, la bonne réponse était : <b>${questions[qidx].c[questions[qidx].a]}</b></span>`;
+      }
+      showScore();
+      setTimeout(nextQ, 1500); // passage auto après 1.5s
+    }
+
+    function nextQ(){
+      qidx++;
+      current = (current+1)%3;
+      qzone.classList.remove("animate-in");
+      qzone.classList.add("animate-out");
+      setTimeout(()=>{
+        qzone.classList.remove("animate-out");
+        showQ();
+      },400);
+    }
+    showScore();
+    showQ();
   </script>
 </body>
 </html>
